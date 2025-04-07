@@ -1,41 +1,47 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-  const { url, strategy = "mobile" } = req.query;
+  const { url } = req.query;
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!url) {
-    return res.status(400).json({ error: "Missing URL parameter" });
+    return res.status(400).json({ error: 'Missing URL parameter' });
   }
 
-  const psiBase = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
-  const query = `?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
-  const psiUrl = `${psiBase}${query}`;
+  const strategies = ['desktop', 'mobile'];
+  let finalResult = null;
+  let errorMessages = [];
 
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 9000); // max for Vercel free tier
+  for (const strategy of strategies) {
+    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
+      url
+    )}&strategy=${strategy}&key=${apiKey}`;
 
-    const response = await fetch(psiUrl, { signal: controller.signal });
-    clearTimeout(timeout);
+    try {
+      const response = await fetch(psiUrl, { timeout: 8000 }); // 8 second timeout per call
+      if (!response.ok) throw new Error(`${strategy.toUpperCase()} request failed: ${response.statusText}`);
+      const data = await response.json();
 
-    const contentType = response.headers.get('content-type');
-    if (!response.ok || !contentType.includes('application/json')) {
-      const text = await response.text();
-      return res.status(500).json({ error: "Non-JSON response", body: text });
+      // If API throws ResponseTooLarge or similar inside the JSON body
+      if (data.error) {
+        errorMessages.push(`[${strategy}] ${data.error.message}`);
+        continue;
+      }
+
+      finalResult = { strategy, data };
+      break; // success — break loop
+
+    } catch (error) {
+      errorMessages.push(`[${strategy}] ${error.message}`);
     }
+  }
 
-    const data = await response.json();
-
-    if (data.error) {
-      return res.status(response.status).json(data);
-    }
-
-    res.status(200).json(data);
-  } catch (error) {
-    res.status(500).json({
-      error: "Failed to fetch PageSpeed data",
-      details: error.name === 'AbortError' ? 'Timeout exceeded' : error.toString()
+  if (finalResult) {
+    return res.status(200).json(finalResult);
+  } else {
+    return res.status(504).json({
+      error: 'Both desktop and mobile audits failed or timed out',
+      details: errorMessages
     });
   }
 };

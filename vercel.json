@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "functions": {
+    "api/run_pagespeed.py": {
+      "runtime": "python3.9"
+    },
+    "api/get_indexed_pages.py": {
+      "runtime": "python3.9"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/run_pagespeed",
+      "dest": "/api/run_pagespeed.py"
+    },
+    {
+      "src": "/api/get_indexed_pages",
+      "dest": "/api/get_indexed_pages.py"
+    }
+  ]
+}

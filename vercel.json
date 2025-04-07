@@ -1,13 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/run_pagespeed.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/get_indexed_pages.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "routes": [
     {
       "src": "/api/run_pagespeed",

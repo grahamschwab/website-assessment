@@ -1,43 +1,40 @@
-export const config = {
-  runtime: 'edge',
-};
+const fetch = require('node-fetch');
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const url = searchParams.get("url");
+module.exports = async (req, res) => {
+  const { url, strategy = "mobile" } = req.query;
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!url) {
-    return new Response(JSON.stringify({ error: "Missing URL parameter" }), {
-      status: 400,
-    });
+    return res.status(400).json({ error: "Missing URL parameter" });
   }
 
-  const fetchWithTimeout = async (strategy) => {
-    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000);
-    try {
-      const res = await fetch(psiUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      return await res.json();
-    } catch (error) {
-      clearTimeout(timeout);
-      return { error: error.toString() };
+  const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
+
+  try {
+    const response = await fetch(psiUrl);
+    const data = await response.json();
+
+    if (data.error) {
+      // Graceful error handling
+      return res.status(200).json({
+        strategy,
+        error: data.error.message || "Unknown PageSpeed API error",
+        code: data.error.code || null
+      });
     }
-  };
 
-  const [mobileResult, desktopResult] = await Promise.all([
-    fetchWithTimeout("mobile"),
-    fetchWithTimeout("desktop")
-  ]);
+    return res.status(200).json({
+      strategy,
+      lighthouseResult: data.lighthouseResult,
+      loadingExperience: data.loadingExperience,
+      originLoadingExperience: data.originLoadingExperience
+    });
+  } catch (error) {
+    res.status(500).json({
+      strategy,
+      error: "Failed to fetch PageSpeed data",
+      details: error.toString()
+    });
+  }
+};
 
-  return new Response(JSON.stringify({
-    url,
-    mobile: mobileResult,
-    desktop: desktopResult
-  }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" }
-  });
-}

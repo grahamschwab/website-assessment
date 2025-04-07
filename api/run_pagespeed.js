@@ -8,33 +8,34 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing URL parameter" });
   }
 
-  const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
+  const psiBase = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
+  const query = `?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
+  const psiUrl = `${psiBase}${query}`;
 
   try {
-    const response = await fetch(psiUrl);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 9000); // max for Vercel free tier
+
+    const response = await fetch(psiUrl, { signal: controller.signal });
+    clearTimeout(timeout);
+
+    const contentType = response.headers.get('content-type');
+    if (!response.ok || !contentType.includes('application/json')) {
+      const text = await response.text();
+      return res.status(500).json({ error: "Non-JSON response", body: text });
+    }
+
     const data = await response.json();
 
     if (data.error) {
-      // Graceful error handling
-      return res.status(200).json({
-        strategy,
-        error: data.error.message || "Unknown PageSpeed API error",
-        code: data.error.code || null
-      });
+      return res.status(response.status).json(data);
     }
 
-    return res.status(200).json({
-      strategy,
-      lighthouseResult: data.lighthouseResult,
-      loadingExperience: data.loadingExperience,
-      originLoadingExperience: data.originLoadingExperience
-    });
+    res.status(200).json(data);
   } catch (error) {
     res.status(500).json({
-      strategy,
       error: "Failed to fetch PageSpeed data",
-      details: error.toString()
+      details: error.name === 'AbortError' ? 'Timeout exceeded' : error.toString()
     });
   }
 };
-

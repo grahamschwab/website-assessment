@@ -16,8 +16,12 @@ module.exports = async (req, res) => {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    const resultText = $('span.sb_count').text().trim();
-    const stats = resultText || 'Not found';
+    let stats = $('span.sb_count').text().trim();
+
+    if (!stats) {
+      const match = html.match(/([\d,]+) results/i);
+      stats = match ? `${match[1]} results` : 'Not found';
+    }
 
     res.status(200).json({ indexed_pages: stats });
   } catch (error) {

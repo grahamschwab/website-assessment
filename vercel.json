@@ -1,21 +1,21 @@
 {
   "version": 2,
   "functions": {
-    "api/run_pagespeed.py": {
-      "runtime": "python3.9"
+    "api/run_pagespeed.js": {
+      "runtime": "nodejs18.x"
     },
-    "api/get_indexed_pages.py": {
-      "runtime": "python3.9"
+    "api/get_indexed_pages.js": {
+      "runtime": "nodejs18.x"
     }
   },
   "routes": [
     {
       "src": "/api/run_pagespeed",
-      "dest": "/api/run_pagespeed.py"
+      "dest": "/api/run_pagespeed.js"
     },
     {
       "src": "/api/get_indexed_pages",
-      "dest": "/api/get_indexed_pages.py"
+      "dest": "/api/get_indexed_pages.js"
     }
   ]
 }

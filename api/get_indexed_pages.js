@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   }
 
   const headers = { "User-Agent": "Mozilla/5.0" };
-  const searchUrl = \`https://www.google.com/search?q=site:\${domain}\`;
+  const searchUrl = `https://www.google.com/search?q=site:${domain}`;
 
   try {
     const response = await fetch(searchUrl, { headers });

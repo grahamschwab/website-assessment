@@ -1,7 +1,0 @@
-{
-  "version": 2,
-  "routes": [
-    { "src": "/api/run_pagespeed", "dest": "/api/run_pagespeed.js" },
-    { "src": "/api/get_indexed_pages", "dest": "/api/get_indexed_pages.js" }
-  ]
-}

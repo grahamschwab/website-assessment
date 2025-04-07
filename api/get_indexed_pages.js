@@ -18,8 +18,14 @@ module.exports = async (req, res) => {
 
     let stats = $('span.sb_count').text().trim();
 
+    // Additional fallback for regional layout (often UK/EU)
     if (!stats) {
-      const match = html.match(/([\d,]+) results/i);
+      stats = $('span.ftrB').text().trim(); // backup span (Bing A/B variant)
+    }
+
+    // Last resort: extract number from full page using regex
+    if (!stats) {
+      const match = html.match(/([\\d,]+) results/i);
       stats = match ? `${match[1]} results` : 'Not found';
     }
 

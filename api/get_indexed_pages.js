@@ -1,23 +1,10 @@
-const fetch = require('node-fetch');
-const cheerio = require('cheerio');
+const html = await response.text();
+const $ = cheerio.load(html);
 
-module.exports = async (req, res) => {
-  const { domain } = req.query;
+let stats = $('#result-stats').text();
+if (!stats) {
+  const match = html.match(/About ([\\d,]+) results/);
+  stats = match ? `About ${match[1]} results` : 'Not found';
+}
 
-  if (!domain) {
-    return res.status(400).json({ error: "Missing domain parameter" });
-  }
-
-  const headers = { "User-Agent": "Mozilla/5.0" };
-  const searchUrl = `https://www.google.com/search?q=site:${domain}`;
-
-  try {
-    const response = await fetch(searchUrl, { headers });
-    const html = await response.text();
-    const $ = cheerio.load(html);
-    const stats = $('#result-stats').text() || 'Not found';
-    res.status(200).json({ indexed_pages: stats });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch indexed pages", details: error.toString() });
-  }
-};
+res.status(200).json({ indexed_pages: stats });

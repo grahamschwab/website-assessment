@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: "Missing URL parameter" });
   }
 
-  const psiUrl = \`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=\${encodeURIComponent(url)}&strategy=\${strategy}&key=\${apiKey}\`;
+  const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
 
   try {
     const response = await fetch(psiUrl);

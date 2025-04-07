@@ -18,7 +18,7 @@ export default async function handler(req) {
 
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+    const timeout = setTimeout(() => controller.abort(), 25000); // 10s
 
     const response = await fetch(psiUrl, { signal: controller.signal });
     clearTimeout(timeout);

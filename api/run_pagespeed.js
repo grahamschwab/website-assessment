@@ -5,7 +5,6 @@ export const config = {
 export default async function handler(req) {
   const { searchParams } = new URL(req.url);
   const url = searchParams.get("url");
-  const strategy = searchParams.get("strategy") || "mobile";
   const apiKey = process.env.GOOGLE_API_KEY;
 
   if (!url) {
@@ -14,24 +13,31 @@ export default async function handler(req) {
     });
   }
 
-  const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
-
-  try {
+  const fetchWithTimeout = async (strategy) => {
+    const psiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&strategy=${strategy}&key=${apiKey}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 25000); // 10s
+    const timeout = setTimeout(() => controller.abort(), 25000);
+    try {
+      const res = await fetch(psiUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+      return await res.json();
+    } catch (error) {
+      clearTimeout(timeout);
+      return { error: error.toString() };
+    }
+  };
 
-    const response = await fetch(psiUrl, { signal: controller.signal });
-    clearTimeout(timeout);
+  const [mobileResult, desktopResult] = await Promise.all([
+    fetchWithTimeout("mobile"),
+    fetchWithTimeout("desktop")
+  ]);
 
-    const data = await response.json();
-    return new Response(JSON.stringify(data), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: "Failed to fetch PageSpeed data", details: error.toString() }),
-      { status: 500 }
-    );
-  }
+  return new Response(JSON.stringify({
+    url,
+    mobile: mobileResult,
+    desktop: desktopResult
+  }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" }
+  });
 }
